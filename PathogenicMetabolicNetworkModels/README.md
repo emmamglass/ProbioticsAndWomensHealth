@@ -1,0 +1,46 @@
+# Pathogenic Metabolic Network Models
+
+This folder contains genome-scale metabolic network models (GEMs) for pathogenic bacteria in SBML format.
+
+## Contents
+
+- **197 SBML model files** (`.sbml` format)
+- Each file represents a genome-scale metabolic model for a pathogenic bacterial species
+
+## Model Format
+
+- **SBML** (Systems Biology Markup Language) version 3.1 or compatible
+- Models are constraint-based and suitable for:
+  - Flux Balance Analysis (FBA)
+  - Flux sampling (e.g., using gap-split or ACHR)
+  - Metabolic network analysis
+
+## Usage
+
+These models are used in conjunction with:
+- Flux sampling scripts (to generate `.sbml.csv` flux files)
+- Clustering analyses (`CommensalPathogenProbioticClustering/`)
+- Reaction analysis (`ReactionAnalysis/`)
+
+## Model Sources
+
+Models are likely derived from:
+- ModelSEED database
+- CarveMe reconstructions
+- Manual curation
+- Other automated reconstruction pipelines
+
+## Related Scripts
+
+See:
+- `CommensalPathogenProbioticClustering/` - For clustering analysis using flux data from these models
+- `ReactionAnalysis/` - For analyzing reactions and subsystems in these models
+
+## Note
+
+The collection includes 197 pathogenic species, which may include:
+- Urinary tract pathogens
+- Vaginal pathogens (e.g., *Gardnerella vaginalis*)
+- Gastrointestinal pathogens
+- Other clinically relevant pathogens
+
