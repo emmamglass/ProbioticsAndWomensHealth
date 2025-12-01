@@ -23,8 +23,21 @@ from cobra.util import create_stoichiometric_matrix
 import warnings
 warnings.filterwarnings('ignore')
 
-# Preferred solver (can be overridden with MICOM_SOLVER env var)
-DEFAULT_SOLVER = os.environ.get('MICOM_SOLVER', 'glpk')
+# Force Gurobi as solver if available (can be overridden with MICOM_SOLVER env var)
+try:
+    import gurobipy
+    # Force Gurobi - only use env var if explicitly set, otherwise always use gurobi
+    if 'MICOM_SOLVER' in os.environ:
+        DEFAULT_SOLVER = os.environ.get('MICOM_SOLVER')
+        print(f"Using solver from MICOM_SOLVER env var: {DEFAULT_SOLVER}")
+    else:
+        DEFAULT_SOLVER = 'gurobi'
+        print("✓ Gurobi detected - FORCING use of Gurobi for QP optimization")
+except ImportError:
+    DEFAULT_SOLVER = os.environ.get('MICOM_SOLVER', 'glpk')
+    print("⚠ Gurobi not found - using GLPK (limited functionality)")
+    print("To install Gurobi: pip install gurobipy")
+    print("Get free academic license: https://www.gurobi.com/academia/")
 
 # ============================================================================
 # CONFIGURATION
@@ -187,9 +200,24 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
         model1 = load_model(model1_path, model1_id)
         model2 = load_model(model2_path, model2_id)
         
-        # Ensure solvers are configured
-        set_model_solver(model1)
-        set_model_solver(model2)
+        # Force Gurobi on individual models if available
+        try:
+            import gurobipy
+            print("Forcing Gurobi solver on individual models...")
+            try:
+                model1.solver = 'gurobi'
+                print(f"  ✓ Set Gurobi on {model1_id}")
+            except Exception as e:
+                print(f"  ✗ Could not set Gurobi on {model1_id}: {e}")
+            try:
+                model2.solver = 'gurobi'
+                print(f"  ✓ Set Gurobi on {model2_id}")
+            except Exception as e:
+                print(f"  ✗ Could not set Gurobi on {model2_id}: {e}")
+        except ImportError:
+            # Gurobi not available, use default solver
+            set_model_solver(model1)
+            set_model_solver(model2)
 
         # Get G. vaginalis growth alone (baseline)
         # Optimize model - solution is stored in model.solution
@@ -245,7 +273,46 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
             taxonomy_df = pd.DataFrame(taxonomy_data)
             
             # Use Community directly with full paths to .xml files
-            community = Community(taxonomy_df, solver=DEFAULT_SOLVER)
+            # Force Gurobi if available
+            solver_to_use = DEFAULT_SOLVER
+            try:
+                import gurobipy
+                if DEFAULT_SOLVER != 'gurobi':
+                    print(f"⚠ Warning: DEFAULT_SOLVER is {DEFAULT_SOLVER}, but Gurobi is available")
+                    print("  Forcing Gurobi for QP optimization...")
+                solver_to_use = 'gurobi'
+            except ImportError:
+                pass
+            
+            print(f"Creating community with solver: {solver_to_use}")
+            community = Community(taxonomy_df, solver=solver_to_use)
+            
+            # FORCE Gurobi on all underlying models
+            try:
+                import gurobipy
+                if hasattr(community, 'models'):
+                    print("Forcing Gurobi solver on all community models...")
+                    for model_id, model in community.models.items():
+                        try:
+                            model.solver = 'gurobi'
+                            print(f"  ✓ Set Gurobi on {model_id}")
+                        except Exception as e:
+                            print(f"  ✗ Could not set Gurobi on {model_id}: {e}")
+            except ImportError:
+                pass
+            
+            # Diagnostic: Check what solver is actually being used
+            print(f"Community solver object: {community.solver}")
+            try:
+                if hasattr(community, 'models'):
+                    for model_id, model in community.models.items():
+                        if hasattr(model, 'solver'):
+                            solver_interface = str(model.solver.interface).lower()
+                            print(f"  Model {model_id} solver interface: {solver_interface}")
+                            if 'gurobi' not in solver_interface:
+                                print(f"    ⚠ Warning: {model_id} is not using Gurobi!")
+            except Exception as e:
+                print(f"  Could not inspect model solvers: {e}")
             
         finally:
             # Cleanup temporary files after community is built
@@ -268,62 +335,62 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
         print("Running cooperative tradeoff optimization...")
         
         # Check if we have a QP-capable solver
+        # Try multiple ways to detect the solver
         solver_name = str(community.solver).lower()
-        if 'gurobi' not in solver_name and 'cplex' not in solver_name:
-            print(f"WARNING: Current solver ({solver_name}) doesn't support quadratic programming.")
-            print("cooperative_tradeoff requires Gurobi or CPLEX.")
-            print("Trying alternative: optimize() with abundance-weighted objective...")
-            
-            # Alternative: Use simple optimization with abundance-weighted community growth
-            # This is a linear approximation
+        has_qp_solver = False
+        
+        # Method 1: Check string representation
+        if 'gurobi' in solver_name or 'cplex' in solver_name:
+            has_qp_solver = True
+            print(f"Detected QP solver from string: {solver_name[:100]}")
+        
+        # Method 2: Check underlying model solvers
+        if not has_qp_solver:
             try:
-                # Set community objective as weighted sum of individual growth
-                community.objective = sum(
-                    abundances[org_id] * community.models[org_id].objective 
-                    for org_id in [model1_id, model2_id]
-                )
-                solution = community.optimize()
-                
-                # Create a mock solution object with expected attributes
-                if solution.status == 'optimal':
-                    # Extract growth rates manually
-                    growth_rates = {}
-                    for org_id in [model1_id, model2_id]:
-                        biomass_rxn = None
-                        for rxn in community.models[org_id].reactions:
-                            if 'biomass' in rxn.id.lower() or rxn.objective_coefficient != 0:
-                                biomass_rxn = rxn.id
+                if hasattr(community, 'models'):
+                    for model_id, model in community.models.items():
+                        if hasattr(model, 'solver'):
+                            solver_interface = str(model.solver.interface).lower()
+                            if 'gurobi' in solver_interface or 'cplex' in solver_interface:
+                                has_qp_solver = True
+                                print(f"Detected QP solver from model {model_id}: {solver_interface}")
                                 break
-                        if biomass_rxn:
-                            # Find the community reaction
-                            comm_rxn_id = f"{biomass_rxn}__{org_id}"
-                            if comm_rxn_id in community.reactions:
-                                growth_rates[org_id] = solution.fluxes.get(comm_rxn_id, 0.0)
-                            else:
-                                growth_rates[org_id] = 0.0
-                        else:
-                            growth_rates[org_id] = 0.0
-                    
-                    # Create solution-like object
-                    class MockSolution:
-                        def __init__(self):
-                            self.members = type('obj', (object,), {'growth_rate': growth_rates})()
-                            self.fluxes = solution.fluxes
-                            self.status = solution.status
-                    
-                    solution = MockSolution()
-                else:
-                    raise ValueError(f"Optimization failed with status: {solution.status}")
             except Exception as e:
-                raise ValueError(
-                    f"Optimization failed. You need Gurobi or CPLEX for cooperative_tradeoff.\n"
-                    f"Error: {str(e)}\n"
-                    f"Install Gurobi: pip install gurobipy\n"
-                    f"Get free academic license: https://www.gurobi.com/academia/academic-program-and-licenses/"
-                )
-        else:
-            # We have a QP-capable solver, use cooperative_tradeoff
+                print(f"Could not check model solvers: {e}")
+        
+        # Method 3: If Gurobi is available and DEFAULT_SOLVER is gurobi, assume it's being used
+        if not has_qp_solver and DEFAULT_SOLVER == 'gurobi':
+            try:
+                import gurobipy
+                has_qp_solver = True
+                print("Assuming Gurobi is in use (DEFAULT_SOLVER=gurobi and gurobipy is available)")
+            except ImportError:
+                pass
+        
+        if not has_qp_solver:
+            raise ValueError(
+                f"Current solver ({solver_name}) doesn't support quadratic programming.\n"
+                f"cooperative_tradeoff requires Gurobi or CPLEX.\n"
+                f"Gurobi is installed and licensed in your environment.\n"
+                f"Try setting: export MICOM_SOLVER=gurobi\n"
+                f"Then run the script again."
+            )
+        
+        # Use cooperative_tradeoff with QP-capable solver
+        try:
             solution = community.cooperative_tradeoff(fraction=0.5)
+        except Exception as e:
+            # If cooperative_tradeoff fails, it might be a solver issue
+            error_msg = str(e).lower()
+            if 'quadratic' in error_msg or 'qp' in error_msg or 'gurobi' in error_msg or 'cplex' in error_msg:
+                raise ValueError(
+                    f"cooperative_tradeoff failed: {e}\n"
+                    f"This suggests the solver is not properly configured for QP.\n"
+                    f"Even though Gurobi is installed, MICOM may not be using it.\n"
+                    f"Try: export MICOM_SOLVER=gurobi"
+                ) from e
+            else:
+                raise
         
         # Extract growth rates
         growth_rates = solution.members.growth_rate
@@ -387,6 +454,8 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
             'niche_overlap': niche_overlap,
             'd_lactate_production': d_lactate_prod,
             'metabolite_exchanges': metabolite_exchanges,
+            'optimization_method': optimization_method,
+            'used_linear_fallback': used_linear_fallback,
             'solution': solution,
             'community': community,
         }
