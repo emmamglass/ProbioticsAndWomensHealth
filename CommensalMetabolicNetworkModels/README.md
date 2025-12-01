@@ -12,7 +12,7 @@ This folder contains genome-scale metabolic network models (GEMs) for commensal 
 - **SBML** (Systems Biology Markup Language) version 3.1 or compatible
 - Models are constraint-based and suitable for:
   - Flux Balance Analysis (FBA)
-  - Flux sampling (e.g., using gap-split or ACHR)
+  - Flux sampling (e.g., using gap-split)
   - Metabolic network analysis
 
 ## Usage
@@ -36,11 +36,4 @@ See:
 - `CommensalPathogenProbioticClustering/` - For clustering analysis using flux data from these models
 - `ReactionAnalysis/` - For analyzing reactions and subsystems in these models
 
-## Note
-
-The large number of models (775) suggests this represents a comprehensive collection of commensal bacterial species, potentially including:
-- Gut commensals
-- Vaginal commensals
-- Oral commensals
-- Other body site commensals
 

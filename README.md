@@ -100,13 +100,6 @@ Each subfolder contains specific analyses. See the README files in each folder f
 - Output descriptions
 - Dependencies
 
-## Key Findings
-
-1. **Metabolic Clustering**: Commensals, pathogens, and probiotics show distinct metabolic phenotypes in flux space
-2. **Inhibitory Mechanisms**: Vaginal commensals can be classified as inhibitory, moderate, or uninhibitory based on their effect on *G. vaginalis* growth
-3. **Metabolite Correlations**: D-lactic acid concentration correlates with growth inhibition
-4. **pH Effects**: Lower pH is associated with inhibitory phenotypes
-
 ## Citation
 
 If you use this repository, please cite the associated publication (if available) or acknowledge the authors.
@@ -114,8 +107,4 @@ If you use this repository, please cite the associated publication (if available
 ## Contact
 
 For questions or issues, please contact the repository maintainers.
-
-## License
-
-[Specify license if applicable]
 

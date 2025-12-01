@@ -36,11 +36,3 @@ See:
 - `CommensalPathogenProbioticClustering/` - For clustering analysis using flux data from these models
 - `ReactionAnalysis/` - For analyzing reactions and subsystems in these models
 
-## Note
-
-The collection includes 197 pathogenic species, which may include:
-- Urinary tract pathogens
-- Vaginal pathogens (e.g., *Gardnerella vaginalis*)
-- Gastrointestinal pathogens
-- Other clinically relevant pathogens
-
