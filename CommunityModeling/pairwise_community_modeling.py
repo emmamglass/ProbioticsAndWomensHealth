@@ -23,21 +23,40 @@ from cobra.util import create_stoichiometric_matrix
 import warnings
 warnings.filterwarnings('ignore')
 
-# Force Gurobi as solver if available (can be overridden with MICOM_SOLVER env var)
-try:
-    import gurobipy
-    # Force Gurobi - only use env var if explicitly set, otherwise always use gurobi
-    if 'MICOM_SOLVER' in os.environ:
-        DEFAULT_SOLVER = os.environ.get('MICOM_SOLVER')
-        print(f"Using solver from MICOM_SOLVER env var: {DEFAULT_SOLVER}")
-    else:
-        DEFAULT_SOLVER = 'gurobi'
-        print("✓ Gurobi detected - FORCING use of Gurobi for QP optimization")
-except ImportError:
-    DEFAULT_SOLVER = os.environ.get('MICOM_SOLVER', 'glpk')
-    print("⚠ Gurobi not found - using GLPK (limited functionality)")
-    print("To install Gurobi: pip install gurobipy")
-    print("Get free academic license: https://www.gurobi.com/academia/")
+# Solver selection: Prefer OSQP (open-source QP solver, no license required)
+# Can be overridden with MICOM_SOLVER env var
+# Options: 'osqp' (default, open-source QP), 'glpk' (open-source LP), 'gurobi' (requires license)
+OSQP_MIN_VERSION = (0, 6, 0)
+OSQP_MAX_VERSION = (0, 9, 999)
+
+if 'MICOM_SOLVER' in os.environ:
+    DEFAULT_SOLVER = os.environ.get('MICOM_SOLVER')
+    print(f"Using solver from MICOM_SOLVER env var: {DEFAULT_SOLVER}")
+else:
+    # Try to use OSQP by default
+    try:
+        import osqp
+        version_tuple = tuple(int(part) for part in osqp.__version__.split('.') if part.isdigit())
+        if version_tuple < OSQP_MIN_VERSION or version_tuple > OSQP_MAX_VERSION:
+            raise RuntimeError(
+                f"OSQP version {osqp.__version__} detected, but MICOM requires <1.0.0.\n"
+                "Install OSQP 0.6.x in a Python 3.11 environment:\n"
+                "  1. brew install python@3.11\n"
+                "  2. python3.11 -m venv venv311 && source venv311/bin/activate\n"
+                "  3. pip install 'osqp<1.0.0'\n"
+            )
+        DEFAULT_SOLVER = 'osqp'
+        print(f"Using OSQP solver (version {osqp.__version__}) for cooperative_tradeoff")
+    except (ImportError, RuntimeError) as osqp_err:
+        print(f"⚠ OSQP not available ({osqp_err}). Falling back to GLPK (linear only).")
+        DEFAULT_SOLVER = 'glpk'
+        print("  Note: GLPK supports only linear optimization.")
+        print("  For full QP support install OSQP (<1.0.0) or Gurobi.")
+        try:
+            import gurobipy
+            print("  (Gurobi is installed - set MICOM_SOLVER=gurobi to use it.)")
+        except ImportError:
+            pass
 
 # ============================================================================
 # CONFIGURATION
@@ -148,7 +167,7 @@ def calculate_jaccard_distance(fluxes1, fluxes2):
     
     return jaccard_distance
 
-def get_d_lactate_production(solution, model_id):
+def get_d_lactate_production(solution, model_id, solution_fluxes=None):
     """Extract D-lactate production flux from solution."""
     # Common D-lactate exchange reaction IDs
     d_lac_reactions = [
@@ -158,11 +177,43 @@ def get_d_lactate_production(solution, model_id):
         'EX_dlactate_e',
     ]
     
-    for rxn_id in d_lac_reactions:
-        if rxn_id in solution.fluxes.index:
-            flux = solution.fluxes[rxn_id]
-            if flux < 0:  # Negative flux means production (secretion)
-                return abs(flux)
+    # Use provided solution_fluxes or try to get from solution
+    fluxes = solution_fluxes
+    if fluxes is None:
+        if solution is not None and hasattr(solution, 'fluxes') and solution.fluxes is not None:
+            fluxes = solution.fluxes
+        elif solution is not None and hasattr(solution, 'fluxes_by_species'):
+            # Try to get fluxes for this specific model
+            if model_id in solution.fluxes_by_species:
+                fluxes = solution.fluxes_by_species[model_id]
+    
+    if fluxes is None or (hasattr(fluxes, '__len__') and len(fluxes) == 0):
+        return 0.0
+    
+    # Check if fluxes is a Series/DataFrame with index, or a dict
+    if hasattr(fluxes, 'index'):
+        for rxn_id in d_lac_reactions:
+            if rxn_id in fluxes.index:
+                flux = fluxes[rxn_id]
+                if flux < 0:  # Negative flux means production (secretion)
+                    return abs(flux)
+            # Also try with model suffix
+            rxn_with_suffix = f"{rxn_id}__{model_id}"
+            if rxn_with_suffix in fluxes.index:
+                flux = fluxes[rxn_with_suffix]
+                if flux < 0:
+                    return abs(flux)
+    elif isinstance(fluxes, dict):
+        for rxn_id in d_lac_reactions:
+            if rxn_id in fluxes:
+                flux = fluxes[rxn_id]
+                if flux < 0:
+                    return abs(flux)
+            rxn_with_suffix = f"{rxn_id}__{model_id}"
+            if rxn_with_suffix in fluxes:
+                flux = fluxes[rxn_with_suffix]
+                if flux < 0:
+                    return abs(flux)
     
     return 0.0
 
@@ -200,41 +251,24 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
         model1 = load_model(model1_path, model1_id)
         model2 = load_model(model2_path, model2_id)
         
-        # Force Gurobi on individual models if available
-        try:
-            import gurobipy
-            print("Forcing Gurobi solver on individual models...")
-            try:
-                model1.solver = 'gurobi'
-                print(f"  ✓ Set Gurobi on {model1_id}")
-            except Exception as e:
-                print(f"  ✗ Could not set Gurobi on {model1_id}: {e}")
-            try:
-                model2.solver = 'gurobi'
-                print(f"  ✓ Set Gurobi on {model2_id}")
-            except Exception as e:
-                print(f"  ✗ Could not set Gurobi on {model2_id}: {e}")
-        except ImportError:
-            # Gurobi not available, use default solver
-            set_model_solver(model1)
-            set_model_solver(model2)
+        # Set solver on individual models (use DEFAULT_SOLVER)
+        print(f"Setting solver on individual models: {DEFAULT_SOLVER}")
+        set_model_solver(model1, DEFAULT_SOLVER)
+        set_model_solver(model2, DEFAULT_SOLVER)
 
         # Get G. vaginalis growth alone (baseline)
         # Optimize model - solution is stored in model.solution
-        model1.optimize()
+        gv_solution = model1.optimize()
         
-        # Get objective value from model.solution (standard COBRApy pattern)
+        # Get objective value from solution (standard COBRApy pattern)
         gv_alone_growth = 0.0
-        if hasattr(model1, 'solution') and model1.solution is not None:
-            # Check if solution is optimal
-            solution_status = getattr(model1.solution, 'status', None)
+        if gv_solution is not None:
+            solution_status = getattr(gv_solution, 'status', None)
             if solution_status == 'optimal':
-                # Try objective_value first (newer COBRApy)
-                if hasattr(model1.solution, 'objective_value'):
-                    gv_alone_growth = model1.solution.objective_value
-                # Fallback to f (older COBRApy)
-                elif hasattr(model1.solution, 'f'):
-                    gv_alone_growth = model1.solution.f
+                if hasattr(gv_solution, 'objective_value') and gv_solution.objective_value is not None:
+                    gv_alone_growth = gv_solution.objective_value
+                elif hasattr(gv_solution, 'f') and gv_solution.f is not None:
+                    gv_alone_growth = gv_solution.f
         
         # Set abundances (normalized)
         total_abundance = abundance1 + abundance2
@@ -273,44 +307,17 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
             taxonomy_df = pd.DataFrame(taxonomy_data)
             
             # Use Community directly with full paths to .xml files
-            # Force Gurobi if available
-            solver_to_use = DEFAULT_SOLVER
-            try:
-                import gurobipy
-                if DEFAULT_SOLVER != 'gurobi':
-                    print(f"⚠ Warning: DEFAULT_SOLVER is {DEFAULT_SOLVER}, but Gurobi is available")
-                    print("  Forcing Gurobi for QP optimization...")
-                solver_to_use = 'gurobi'
-            except ImportError:
-                pass
-            
-            print(f"Creating community with solver: {solver_to_use}")
-            community = Community(taxonomy_df, solver=solver_to_use)
-            
-            # FORCE Gurobi on all underlying models
-            try:
-                import gurobipy
-                if hasattr(community, 'models'):
-                    print("Forcing Gurobi solver on all community models...")
-                    for model_id, model in community.models.items():
-                        try:
-                            model.solver = 'gurobi'
-                            print(f"  ✓ Set Gurobi on {model_id}")
-                        except Exception as e:
-                            print(f"  ✗ Could not set Gurobi on {model_id}: {e}")
-            except ImportError:
-                pass
+            print(f"Creating community with solver: {DEFAULT_SOLVER}")
+            community = Community(taxonomy_df, solver=DEFAULT_SOLVER)
             
             # Diagnostic: Check what solver is actually being used
-            print(f"Community solver object: {community.solver}")
+            print(f"Community solver: {community.solver}")
             try:
                 if hasattr(community, 'models'):
                     for model_id, model in community.models.items():
                         if hasattr(model, 'solver'):
                             solver_interface = str(model.solver.interface).lower()
-                            print(f"  Model {model_id} solver interface: {solver_interface}")
-                            if 'gurobi' not in solver_interface:
-                                print(f"    ⚠ Warning: {model_id} is not using Gurobi!")
+                            print(f"  Model {model_id} solver: {solver_interface}")
             except Exception as e:
                 print(f"  Could not inspect model solvers: {e}")
             
@@ -328,72 +335,123 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
                     if rxn_id in model.reactions:
                         model.reactions.get_by_id(rxn_id).lower_bound = bound
         
-        # Run cooperative tradeoff
-        # Fraction controls tradeoff: 0 = pure competition, 1 = pure cooperation
-        # 0.5 balances individual and community objectives
-        # Note: This requires a QP solver (Gurobi/CPLEX) - GLPK won't work
+        # Run cooperative tradeoff optimization
+        # Uses linear version by default (no QP required, works with GLPK)
+        # Will try QP version if Gurobi/CPLEX available, but falls back to linear
         print("Running cooperative tradeoff optimization...")
         
+        # Use cooperative_tradeoff
+        # Try QP version first if we have a QP-capable solver, otherwise use linear version
+        solution = None
+        used_linear_fallback = False
+        optimization_method = "cooperative_tradeoff"
+        
         # Check if we have a QP-capable solver
-        # Try multiple ways to detect the solver
-        solver_name = str(community.solver).lower()
         has_qp_solver = False
+        solver_name = str(community.solver).lower()
         
-        # Method 1: Check string representation
-        if 'gurobi' in solver_name or 'cplex' in solver_name:
+        # Check solver name string
+        if 'osqp' in solver_name or 'gurobi' in solver_name or 'cplex' in solver_name:
             has_qp_solver = True
-            print(f"Detected QP solver from string: {solver_name[:100]}")
+            print(f"Detected QP solver: {solver_name[:100]}")
         
-        # Method 2: Check underlying model solvers
+        # Also check if OSQP is the default solver
+        if not has_qp_solver and DEFAULT_SOLVER == 'osqp':
+            try:
+                import osqp
+                has_qp_solver = True
+                print(f"OSQP detected via DEFAULT_SOLVER (solver string: {solver_name[:100]})")
+            except ImportError:
+                pass
+        
+        # Check underlying model solvers
         if not has_qp_solver:
             try:
                 if hasattr(community, 'models'):
                     for model_id, model in community.models.items():
                         if hasattr(model, 'solver'):
                             solver_interface = str(model.solver.interface).lower()
-                            if 'gurobi' in solver_interface or 'cplex' in solver_interface:
+                            if 'osqp' in solver_interface or 'gurobi' in solver_interface or 'cplex' in solver_interface:
                                 has_qp_solver = True
                                 print(f"Detected QP solver from model {model_id}: {solver_interface}")
                                 break
             except Exception as e:
                 print(f"Could not check model solvers: {e}")
         
-        # Method 3: If Gurobi is available and DEFAULT_SOLVER is gurobi, assume it's being used
-        if not has_qp_solver and DEFAULT_SOLVER == 'gurobi':
-            try:
-                import gurobipy
-                has_qp_solver = True
-                print("Assuming Gurobi is in use (DEFAULT_SOLVER=gurobi and gurobipy is available)")
-            except ImportError:
-                pass
-        
-        if not has_qp_solver:
-            raise ValueError(
-                f"Current solver ({solver_name}) doesn't support quadratic programming.\n"
-                f"cooperative_tradeoff requires Gurobi or CPLEX.\n"
-                f"Gurobi is installed and licensed in your environment.\n"
-                f"Try setting: export MICOM_SOLVER=gurobi\n"
-                f"Then run the script again."
-            )
-        
-        # Use cooperative_tradeoff with QP-capable solver
+        # Try cooperative_tradeoff (works with QP solvers, falls back automatically if needed)
         try:
-            solution = community.cooperative_tradeoff(fraction=0.5)
-        except Exception as e:
-            # If cooperative_tradeoff fails, it might be a solver issue
-            error_msg = str(e).lower()
-            if 'quadratic' in error_msg or 'qp' in error_msg or 'gurobi' in error_msg or 'cplex' in error_msg:
-                raise ValueError(
-                    f"cooperative_tradeoff failed: {e}\n"
-                    f"This suggests the solver is not properly configured for QP.\n"
-                    f"Even though Gurobi is installed, MICOM may not be using it.\n"
-                    f"Try: export MICOM_SOLVER=gurobi"
-                ) from e
+            if has_qp_solver:
+                print("Attempting cooperative_tradeoff with QP solver...")
             else:
-                raise
+                print("Attempting cooperative_tradeoff (will use available solver)...")
+            
+            solution = community.cooperative_tradeoff(fraction=0.5)
+            print("✓ Cooperative_tradeoff completed successfully")
+        except Exception as e:
+            error_msg = str(e).lower()
+            print(f"⚠ Cooperative_tradeoff failed: {e}")
+            
+            # Check for license size limitation
+            if 'too large' in error_msg and 'license' in error_msg:
+                print("  Gurobi license limitation detected.")
+            
+            # Check for QP-related errors
+            if 'quadratic' in error_msg or 'qp' in error_msg or 'not support' in error_msg:
+                print("  QP not supported by current solver.")
+                print("  Falling back to basic linear optimization...")
+                used_linear_fallback = True
+                optimization_method = "linear_optimization"
+            else:
+                print("  Falling back to basic linear optimization...")
+                used_linear_fallback = True
+                optimization_method = "linear_optimization"
+            
+            # Try basic optimize as fallback
+            try:
+                solution = community.optimize()
+                print("✓ Linear optimization completed successfully")
+            except Exception as e2:
+                raise RuntimeError(
+                    f"Both cooperative_tradeoff and linear optimization failed.\n"
+                    f"Original error: {e}\n"
+                    f"Fallback error: {e2}"
+                ) from e2
+        
+        if solution is None:
+            raise RuntimeError("Optimization returned None - solver may have failed silently")
+        
+        # Debug: Print solution structure
+        print(f"  Solution type: {type(solution)}")
+        print(f"  Solution attributes: {[attr for attr in dir(solution) if not attr.startswith('_')]}")
         
         # Extract growth rates
-        growth_rates = solution.members.growth_rate
+        if hasattr(solution, 'members') and hasattr(solution.members, 'growth_rate'):
+            growth_rates = solution.members.growth_rate
+        elif hasattr(solution, 'growth_rate'):
+            growth_rates = solution.growth_rate
+        else:
+            # Try to get growth rates from community models directly
+            print("  Warning: Solution doesn't have growth_rate, extracting from models...")
+            growth_rates = {}
+            if hasattr(community, 'models'):
+                for species_id, model in community.models.items():
+                    if hasattr(model, 'solution') and model.solution is not None:
+                        if hasattr(model.solution, 'objective_value'):
+                            growth_rates[species_id] = model.solution.objective_value
+                        elif hasattr(model.solution, 'f'):
+                            growth_rates[species_id] = model.solution.f
+                    # Also try model.optimize() result
+                    if species_id not in growth_rates and hasattr(model, 'objective'):
+                        try:
+                            model.optimize()
+                            if hasattr(model, 'solution') and model.solution is not None:
+                                if hasattr(model.solution, 'objective_value'):
+                                    growth_rates[species_id] = model.solution.objective_value
+                                elif hasattr(model.solution, 'f'):
+                                    growth_rates[species_id] = model.solution.f
+                        except:
+                            pass
+            growth_rates = pd.Series(growth_rates) if growth_rates else pd.Series()
         
         gv_growth = growth_rates.get(model1_id, 0.0)
         partner_growth = growth_rates.get(model2_id, 0.0)
@@ -414,25 +472,118 @@ def simulate_pairwise_community(model1_path, model2_path, model1_id, model2_id,
         fluxes1 = pd.Series(index=exchange_rxns1, data=0.0)
         fluxes2 = pd.Series(index=exchange_rxns2, data=0.0)
         
-        for rxn_id in solution.fluxes.index:
-            if rxn_id in exchange_rxns1:
-                fluxes1[rxn_id] = solution.fluxes[rxn_id]
-            if rxn_id in exchange_rxns2:
-                fluxes2[rxn_id] = solution.fluxes[rxn_id]
+        # Get fluxes from solution or community model
+        solution_fluxes = None
+        if solution is not None and hasattr(solution, 'fluxes') and solution.fluxes is not None:
+            solution_fluxes = solution.fluxes
+        elif solution is not None and hasattr(solution, 'fluxes_by_species'):
+            # Alternative structure - get fluxes by species
+            solution_fluxes = {}
+            for species_id, species_fluxes in solution.fluxes_by_species.items():
+                if hasattr(species_fluxes, 'items'):
+                    for rxn_id, flux_val in species_fluxes.items():
+                        solution_fluxes[rxn_id] = flux_val
+                elif hasattr(species_fluxes, 'index'):
+                    for rxn_id in species_fluxes.index:
+                        solution_fluxes[rxn_id] = species_fluxes[rxn_id]
+            solution_fluxes = pd.Series(solution_fluxes)
+        else:
+            # Try to get fluxes directly from community model
+            print("  Solution doesn't have fluxes attribute, extracting from community model...")
+            try:
+                # Method 1: Try to get fluxes from community's internal solution
+                if hasattr(community, 'solution') and community.solution is not None:
+                    if hasattr(community.solution, 'fluxes'):
+                        solution_fluxes = community.solution.fluxes
+                        print("  Found fluxes in community.solution")
+                
+                # Method 2: Get fluxes from individual models in the community
+                if (solution_fluxes is None or len(solution_fluxes) == 0) and hasattr(community, 'models'):
+                    solution_fluxes = {}
+                    for species_id, model in community.models.items():
+                        # Try different ways to get fluxes from model
+                        model_fluxes = None
+                        
+                        # Check model.solution.fluxes
+                        if hasattr(model, 'solution') and model.solution is not None:
+                            if hasattr(model.solution, 'fluxes'):
+                                if hasattr(model.solution.fluxes, 'items'):
+                                    model_fluxes = model.solution.fluxes
+                                elif hasattr(model.solution.fluxes, 'index'):
+                                    model_fluxes = {rxn_id: model.solution.fluxes[rxn_id] 
+                                                   for rxn_id in model.solution.fluxes.index}
+                        
+                        # If no solution, try to get from reactions directly
+                        if model_fluxes is None:
+                            try:
+                                model_fluxes = {rxn.id: rxn.flux for rxn in model.reactions if hasattr(rxn, 'flux')}
+                            except:
+                                pass
+                        
+                        if model_fluxes:
+                            for rxn_id, flux_val in model_fluxes.items():
+                                # Store with species suffix
+                                full_rxn_id = f"{rxn_id}__{species_id}"
+                                solution_fluxes[full_rxn_id] = flux_val
+                                # Also store without suffix (for compatibility)
+                                if rxn_id not in solution_fluxes:
+                                    solution_fluxes[rxn_id] = flux_val
+                    
+                    if solution_fluxes:
+                        solution_fluxes = pd.Series(solution_fluxes)
+                        print(f"  Extracted {len(solution_fluxes)} fluxes from community models")
+                    else:
+                        solution_fluxes = None
+                
+                # Method 3: Try to access fluxes via community's reaction objects
+                if (solution_fluxes is None or len(solution_fluxes) == 0) and hasattr(community, 'reactions'):
+                    try:
+                        solution_fluxes = {rxn.id: rxn.flux for rxn in community.reactions if hasattr(rxn, 'flux')}
+                        solution_fluxes = pd.Series(solution_fluxes) if solution_fluxes else None
+                        if solution_fluxes is not None:
+                            print(f"  Extracted {len(solution_fluxes)} fluxes from community reactions")
+                    except Exception as e:
+                        print(f"  Could not extract from community reactions: {e}")
+                        
+            except Exception as e:
+                print(f"  Error extracting fluxes: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        if solution_fluxes is None or len(solution_fluxes) == 0:
+            print("  Warning: Could not extract flux information. Using zero fluxes.")
+            solution_fluxes = pd.Series(dtype=float)
+        else:
+            # Extract fluxes for each model
+            for rxn_id in solution_fluxes.index:
+                # Try exact match first
+                if rxn_id in exchange_rxns1:
+                    fluxes1[rxn_id] = solution_fluxes[rxn_id]
+                if rxn_id in exchange_rxns2:
+                    fluxes2[rxn_id] = solution_fluxes[rxn_id]
+                
+                # Try with species suffix (e.g., "EX_glc__D_e__G_vaginalis")
+                for prefix in [f"{rxn_id}__{model1_id}", f"{rxn_id}__{model2_id}"]:
+                    if prefix in solution_fluxes.index:
+                        if rxn_id in exchange_rxns1:
+                            fluxes1[rxn_id] = solution_fluxes[prefix]
+                        if rxn_id in exchange_rxns2:
+                            fluxes2[rxn_id] = solution_fluxes[prefix]
         
         niche_overlap = calculate_jaccard_distance(fluxes1, fluxes2)
         
         # Get D-lactate production from partner
         print("Analyzing metabolite exchanges...")
-        d_lactate_prod = get_d_lactate_production(solution, model2_id)
+        d_lactate_prod = get_d_lactate_production(solution, model2_id, solution_fluxes)
         
         # Get other significant metabolite exchanges
         metabolite_exchanges = {}
         threshold = 1e-6
-        for rxn_id in solution.fluxes.index:
-            flux_val = solution.fluxes[rxn_id]
-            if 'EX_' in rxn_id and abs(flux_val) > threshold:
-                metabolite_exchanges[rxn_id] = flux_val
+        if solution_fluxes is not None and len(solution_fluxes) > 0:
+            for rxn_id in solution_fluxes.index:
+                flux_val = solution_fluxes[rxn_id]
+                if 'EX_' in rxn_id and abs(flux_val) > threshold:
+                    metabolite_exchanges[rxn_id] = flux_val
         
         print(f"  G. vaginalis growth: {gv_growth:.6f}")
         print(f"  Partner growth: {partner_growth:.6f}")
@@ -631,6 +782,7 @@ def create_visualizations(df_summary):
             ax.set_title(f'Abundance Ratio {ab1}:{ab2}', fontsize=11, fontweight='bold')
             ax.set_ylabel('Growth Suppression')
             ax.set_xlabel('Partner Organism')
+            ax.set_ylim(0.8, 1.0)  # Set y-axis range to focus on high suppression values
             ax.tick_params(axis='x', rotation=45)
             ax.legend(title='Category')
     

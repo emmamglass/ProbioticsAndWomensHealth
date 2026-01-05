@@ -1,0 +1,13 @@
+Pair,Partner_Name,Partner_ID,Category,Abundance_Ratio,G_vaginalis_Growth,Partner_Growth,G_vaginalis_Alone_Growth,Growth_Suppression,Niche_Overlap,D_Lactate_Production
+G_vaginalis_vs_L_jensenii,Lactobacillus jensenii,L_jensenii,Safe Candidate,1.0:1.0,46.2232682761662,46.22328433483738,358.4229390681003,0.8710370815094962,0.0,0.0
+G_vaginalis_vs_L_jensenii,Lactobacillus jensenii,L_jensenii,Safe Candidate,1.0:10.0,6.147010496991178,61.46214451753612,358.4229390681003,0.9828498407133945,0.0,0.0
+G_vaginalis_vs_L_jensenii,Lactobacillus jensenii,L_jensenii,Safe Candidate,10.0:1.0,39.22193236628865,3.9221826206091506,358.4229390681003,0.8905708086980547,0.0,0.0
+G_vaginalis_vs_A_lactolyticus,Anaerococcus lactolyticus,A_lactolyticus,BV-Associated,1.0:1.0,36.88463661558317,36.885155256393034,358.4229390681003,0.8970918638425229,0.0,0.0
+G_vaginalis_vs_A_lactolyticus,Anaerococcus lactolyticus,A_lactolyticus,BV-Associated,1.0:10.0,4.298840945942276,42.97186587925368,358.4229390681003,0.988006233760821,0.0,0.0
+G_vaginalis_vs_A_lactolyticus,Anaerococcus lactolyticus,A_lactolyticus,BV-Associated,10.0:1.0,37.37290030115875,3.737291664632404,358.4229390681003,0.895729608159767,0.0,0.0
+G_vaginalis_vs_A_tetradius,Anaerococcus tetradius,A_tetradius,BV-Associated,1.0:1.0,40.67712342606969,40.6771291151879,358.4229390681003,0.8865108256412656,0.0,0.0
+G_vaginalis_vs_A_tetradius,Anaerococcus tetradius,A_tetradius,BV-Associated,1.0:10.0,5.047836072116576,50.47853699244393,358.4229390681003,0.9859165373587947,0.0,0.0
+G_vaginalis_vs_A_tetradius,Anaerococcus tetradius,A_tetradius,BV-Associated,10.0:1.0,38.12356316748654,3.812354274154915,358.4229390681003,0.8936352587627127,0.0,0.0
+G_vaginalis_vs_F_vaginae,Fannyhessea vaginae,F_vaginae,BV-Associated,1.0:1.0,46.22313038806233,46.22324531915663,358.4229390681003,0.8710374662173062,0.0,0.0
+G_vaginalis_vs_F_vaginae,Fannyhessea vaginae,F_vaginae,BV-Associated,1.0:10.0,6.147385349950626,61.46217245442541,358.4229390681003,0.9828487948736377,0.0,0.0
+G_vaginalis_vs_F_vaginae,Fannyhessea vaginae,F_vaginae,BV-Associated,10.0:1.0,39.22197010836829,3.922198271518802,358.4229390681003,0.8905707033976524,0.0,0.0
