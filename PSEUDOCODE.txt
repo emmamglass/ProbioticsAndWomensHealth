@@ -1,0 +1,46 @@
+OVERVIEW OF ANALYSIS PIPELINE AND SCRIPTS
+
+1. COMMUNITY MODELING AND PAIRWISE SIMULATIONS
+The pipeline begins with the CommunityModeling module, which automates the construction of metabolic models. 
+The script pairwise_community_modeling.py loads SBML files and selects a solver to simulate interactions 
+between G. vaginalis and various inhibitory or uninhibitory partners. These simulations are conducted across
+specific abundance ratios (1:1, 1:10, and 10:1) to record growth rates, niche overlap, and D-lactate flux. 
+The resulting data is aggregated into CSV and PKL files, which are then processed by create_plots_from_csv.py
+to generate visual comparisons of growth suppression and metabolite fluxes.
+
+2. MICROBIAL CLUSTERING AND CENTROID ANALYSIS
+The pipeline features several clustering modules (Human-Associated, Probiotics, and Vaginal Species) that 
+follow a standardized analytical flow. The Clustering.py scripts read flux vectors from various species 
+lists, labeling them as Probiotic, Pathogen, or Commensal. After downsampling the data, dimensionality 
+reduction techniques such as PCA, t-SNE, or KMeans are applied to identify patterns. The 
+centroidcalculations.py scripts then take these coordinates to compute class centroids and draw 2 SD 
+confidence ellipses. Statistical significance is determined using Kruskal-Wallis tests on class 
+distributions. To visualize the specific reactions driving these clusters, flux_heatmap scripts compute 
+median fluxes per species and render clustered heatmaps annotated by metabolic subsystems.
+
+3. REACTION AND SUBSYSTEM ANALYSIS
+Detailed metabolic differences are explored in the ReactionAnalysis module. The ReactionAnalysisUpsetPlot.py
+ script identifies unique and shared reactions across microbial groups using UpSet diagrams. These unique 
+ reactions are then annotated via ReactionAnnotation.py, which queries ModelSEED and KEGG databases to map 
+ reactions to specific metabolic pathways. To compare groups at a higher level, the subsystem_differences 
+ scripts count reactions per subsystem and generate bar charts to highlight functional differences between 
+ pathogens, commensals, and probiotics.
+
+4. EXPERIMENTAL VALIDATION AND SPENT MEDIA ANALYSIS
+The SpentMediaExperiment folder contains scripts designed to process empirical laboratory data. The 
+plot_curves.py scripts calculate the mean and SEM for growth replicates of G. vaginalis (strains GV14018 
+and JCP7672) to generate growth curves with shaded error regions. The AUC_difference.py script performs 
+Simpson integration to calculate the Area Under the Curve for different conditions, followed by ANOVA and 
+pairwise t-tests to quantify growth inhibition.
+
+Metabolic byproducts are analyzed through specialized scripts for Lactic Acid and pH. These scripts process 
+concentrations of D-lactic and L-lactic acid, using Welch t-tests to compare groups. Notably, dlacticandgrowth.py 
+fits an exponential model to the data to determine the correlation between D-lactate concentrations and pathogen 
+growth (AUC), providing an R-squared value for the fit.
+
+5. META-ANALYSIS AND UTILITIES
+The MetaAnalysis module handles broader data integration. The metaanalysisplot.py script converts 
+percentage-based intervention strings into numeric data to run Kruskal-Wallis and Mann-Whitney U tests 
+across different categories, visualizing results through boxplots. Additionally, miscellaneous utility 
+scripts are used across the project to ensure consistent figure generation from precomputed CSV results.
+
