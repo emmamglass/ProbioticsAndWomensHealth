@@ -89,16 +89,17 @@ cd "/Users/eglass/Desktop/UVA/Nautre Microbiology/CommunityModeling"
 python pairwise_community_modeling.py
 ```
 
+### Required Inputs
+- SBML models listed in `MODEL_MAPPINGS` stored in this folder.
+- Text lists (`inhibitory_vag_comm.txt`, `uninhibitory_vag_comm.txt`, `flux_list_vaginal_strains.txt`) with one SBML filename per line; no headers.
+- Optional media constraints: edit `define_media_constraints()` to match your media (e.g., PGY-mod, Synthetic Vaginal Fluid).
+
 ## Output
 
 The script generates results in the `pairwise_results/` directory:
 
 1. **`pairwise_summary.csv`**: Summary statistics for all simulations
-   - Growth rates
-   - Growth suppression
-   - Niche overlap
-   - D-lactate production
-   - Abundance ratios
+   - Columns typically include: `pair` (partner label), `abundance_ratio` (e.g., `1:1`), `g_vaginalis_growth`, `partner_growth`, `growth_suppression`, `niche_overlap`, and `d_lactate_flux`.
 
 2. **`detailed_results.pkl`**: Full simulation results (pickle format)
    - Complete solution objects

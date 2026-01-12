@@ -92,6 +92,54 @@ Statistical analysis of clinical BV recurrence data comparing different interven
 - **CSV** - Comma-separated values for flux data and experimental results
 - **Excel** - Spreadsheet files for experimental data
 
+## System Requirements
+
+- **Operating systems tested**: macOS (Apple silicon) on Darwin 25.1 with Homebrew-managed Python 3.11.14 and 3.14.0 virtual environments. Linux should work with equivalent Python/solver setups; Windows has not been validated.
+- **Software dependencies**: Python 3.11+ (3.14 OK), with `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`, `scipy`, `cobra`, `micom`, `upsetplot`, `mycolorpy`. See `CommunityModeling/requirements.txt` for pinned versions used in MICOM workflows.
+- **Solvers**: MICOM uses COBRA solvers; GLPK works out of the box. Gurobi (optional) improves performance if licensed.
+- **Hardware**: No non-standard hardware required. A typical desktop/laptop with ≥4 CPU cores and ≥16 GB RAM is recommended for running multiple community simulations. GPU is not used.
+
+## Installation
+
+Typical install on a normal desktop computer (Python already installed):
+
+```bash
+# from repo root
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r CommunityModeling/requirements.txt
+# optional: add plotting/analysis extras
+pip install scikit-learn scipy upsetplot mycolorpy
+```
+
+If using Gurobi, install and license it separately, then set `MICOM_SOLVER=gurobi`.
+
+## Demo
+
+Run the pairwise community modeling example included in `CommunityModeling`:
+
+```bash
+cd /Users/eglass/Desktop/UVA/Nautre\ Microbiology/ProbioticsAndWomensHealth
+source .venv/bin/activate      # if created as above
+python CommunityModeling/pairwise_community_modeling.py
+```
+
+**Expected output** (written to `CommunityModeling/pairwise_results/`):
+- `pairwise_summary.csv`, `detailed_results.pkl`
+- Plots: `pairwise_comparison_plots.png`, `abundance_dependent_effects.png`
+
+**Expected run time**: ~3–6 minutes on a recent Apple silicon or comparable CPU desktop with 16 GB RAM using the default GLPK solver (Gurobi can be faster).
+
+For all other analyses and scripts, see the README in each subfolder (e.g., `CommensalPathogenProbioticClustering/README.md`, `ProbioticsClustering/README.md`, `ReactionAnalysis/README.md`, etc.) for dataset requirements, parameters, and run commands specific to that module.
+
+## Instructions for Use
+
+- **Prepare models**: Place your SBML models in the relevant module directory (e.g., `CommunityModeling/`) and update the `MODEL_MAPPINGS` dictionary in `pairwise_community_modeling.py` to point to your filenames.
+- **Media and constraints**: Adjust media composition in `define_media_constraints()` inside the same script to match your experimental conditions (e.g., PGY-mod or Synthetic Vaginal Fluid).
+- **Solver selection**: Set `MICOM_SOLVER` to `glpk` (default), `glpk_exact`, `hybrid`, `osqp`, `scipy`, or `gurobi` if installed.
+- **Run on your data**: Execute the script as in the Demo section; outputs will be written to `pairwise_results/` with metrics on growth suppression, niche overlap, and metabolite production.
+- **Post-processing**: Use the generated CSV/Pickle outputs to make additional plots or statistical comparisons; see subfolder READMEs for analysis-specific guidance.
+
 ## Usage
 
 Each subfolder contains specific analyses. See the README files in each folder for:

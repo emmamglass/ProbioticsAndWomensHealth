@@ -30,12 +30,12 @@ cluster_data = cluster('pca', downsample=50)
 - `downsample`: Number of flux samples per species (default: 500)
 
 **Input Files Required**:
-- `*.sbml.csv` - Flux sampling output files
-- `probiotics_flux_list.txt` - List of probiotic species filenames
-- `pathogens_flux_list.txt` - List of pathogen species filenames
+- `*.sbml.csv` - Flux sampling output files; rows = sampled flux vectors, columns = reaction IDs (header row required).
+- `probiotics_flux_list.txt` - One probiotic flux CSV filename per line (no header).
+- `pathogens_flux_list.txt` - One pathogen flux CSV filename per line (no header).
 
 **Output**:
-- Transformed flux data with component coordinates
+- Transformed flux data with component coordinates (if saved, columns: `Component1`, `Component2` or t-SNE/MDS equivalents, `Label`, `Classification`).
 - Classification labels (Probiotic/Pathogen/Commensal)
 - Variance explained statistics (for PCA)
 
@@ -67,9 +67,7 @@ python centroidcalculations.py
 ```
 
 **Input Files Required**:
-- `data_to_plot.csv` - Output from `Clustering.py` containing:
-  - Component 1, Component 2 (PCA/t-SNE/MDS coordinates)
-  - Classification (family names)
+- `data_to_plot.csv` - Output from `Clustering.py` containing columns: `Component1`, `Component2` (PCA/t-SNE/MDS coordinates), `Label` (filename), `Classification` (family names).
 
 **Output**:
 - Scatter plot with:

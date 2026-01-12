@@ -31,6 +31,11 @@ These models are used in conjunction with:
   - `ProbioticsClustering/` - Focused probiotic analysis
 - Reaction analysis (`ReactionAnalysis/`)
 
+## Inputs / Outputs for Scripts
+
+- **Inputs**: Each `.sbml` file is consumed by downstream scripts (flux sampling, clustering, reaction analysis). No CSV inputs are required in this folder itself.
+- **Outputs**: This folder does not produce outputs on its own; downstream scripts generate flux CSVs or plots in their respective folders after reading these SBML models.
+
 ## Model Sources
 
 Models are likely derived from:

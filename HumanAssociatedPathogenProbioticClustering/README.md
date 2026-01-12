@@ -29,14 +29,13 @@ cluster_data = cluster('pca', downsample=50)
 - `downsample`: Number of flux samples per species (default: 500)
 
 **Input Files Required**:
-- `*.sbml.csv` - Flux sampling output files
-- `probiotics_flux_list.txt` - List of probiotic species filenames
-- `pathogens_flux_list.txt` - List of pathogen species filenames
+- `*.sbml.csv` - Flux sampling output files; each file should contain one row per sampled flux vector and one column per reaction (header row of reaction IDs).
+- `probiotics_flux_list.txt` - One probiotic flux CSV filename per line (no header).
+- `pathogens_flux_list.txt` - One pathogen flux CSV filename per line (no header).
 
 **Output**:
-- Transformed flux data with component coordinates
-- Classification labels (Probiotic/Pathogen/Commensal)
-- Variance explained statistics (for PCA)
+- Transformed flux data with component coordinates (saved to `data_to_plot.csv` if enabled) with columns: `Component1`, `Component2` (or t-SNE/MDS equivalents), `Label` (filename), `Classification` (Probiotic/Pathogen/Commensal).
+- Classification labels and variance explained statistics (for PCA).
 
 ---
 
@@ -58,9 +57,7 @@ python centroidcalculations.py
 ```
 
 **Input Files Required**:
-- `data_to_plot.csv` - Output from `Clustering.py` containing:
-  - Component 1, Component 2 (PCA/t-SNE/MDS coordinates)
-  - Classification (Commensal/Pathogen/Probiotic)
+- `data_to_plot.csv` - Output from `Clustering.py` containing columns `Component1`, `Component2`, `Label`, and `Classification` (Commensal/Pathogen/Probiotic).
 
 **Output**:
 - Scatter plot with:
@@ -102,13 +99,10 @@ python flux_heatmap.py
 ```
 
 **Input Files Required**:
-- `vaginal_probiotic.txt` - List of probiotic species filenames
-- `uninhibitory_vag_comm.txt` - List of uninhibitory vaginal commensal filenames
-- `inhibitory_vag_comm.txt` - List of inhibitory vaginal commensal filenames
-- `gardnerella_vaginalis.txt` - List of Gardnerella vaginalis filenames
-- `file_species_mapping.csv` - Mapping of filenames to species names
-- `all_reactions.csv` - Mapping of reactions to subsystems
-- Flux CSV files referenced in the text files above
+- `vaginal_probiotic.txt`, `uninhibitory_vag_comm.txt`, `inhibitory_vag_comm.txt`, `gardnerella_vaginalis.txt`: each with one flux CSV filename per line.
+- `file_species_mapping.csv`: columns `filename`, `species`.
+- `all_reactions.csv`: columns `reaction_id`, `subsystem`.
+- Flux CSV files referenced above (`*.sbml.csv`), structured as rows = samples, columns = reaction IDs (header row).
 
 **Output**:
 - Clustered heatmap visualization

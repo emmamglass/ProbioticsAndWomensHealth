@@ -24,9 +24,7 @@ python metaanalysisplot.py
 ```
 
 **Input Files Required**:
-- `metaanalysisdatatoplot.csv` - CSV file with columns for each intervention category
-  - Each column contains percentage values (as strings with '%' suffix)
-  - Values represent BV recurrence rates
+- `metaanalysisdatatoplot.csv` - Wide CSV; each column header is an intervention category (e.g., `Metronidazole`, `Probiotic`, `Combined`, etc.). Each cell is a percentage value as a string with `%` suffix (e.g., `25%`). No index column.
 
 **Output**:
 - Box plot visualization showing:

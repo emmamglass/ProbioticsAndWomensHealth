@@ -27,9 +27,7 @@ python ReactionAnalysisUpsetPlot.py
 ```
 
 **Input Files Required**:
-- `Probiotic_rxn_anno.csv` - CSV with 'Reaction' column listing probiotic reactions
-- `Pathogen_rxn_anno.csv` - CSV with 'Reaction' column listing pathogen reactions
-- `Commensal_rxn_anno.csv` - CSV with 'Reaction' column listing commensal reactions
+- `Probiotic_rxn_anno.csv`, `Pathogen_rxn_anno.csv`, `Commensal_rxn_anno.csv` — CSVs with a `Reaction` column; other columns (e.g., `Annotation`, `Subsystem`) are ignored for the intersection plot.
 
 **Output**:
 - UpSet plot visualization showing reaction set intersections
@@ -57,9 +55,7 @@ python ReactionAnnotation.py
 ```
 
 **Input Files Required**:
-- `Unique_commensal_rxns.txt` - List of unique commensal reactions
-- `Unique_probiotic_rxns.txt` - List of unique probiotic reactions
-- `Unique_pathogen_rxns.txt` - List of unique pathogen reactions
+- `Unique_commensal_rxns.txt`, `Unique_probiotic_rxns.txt`, `Unique_pathogen_rxns.txt` — plain text, one reaction ID per line (no header).
 
 **Output Files**:
 - `Unique_commensal_anno.csv` - Annotated commensal reactions
@@ -96,11 +92,8 @@ python subsystem_differences_hist.py
 ```
 
 **Input Files Required**:
-- `Pathogens_Commensals_annot.csv` - Annotated reactions shared between pathogens and commensals
-- `Probiotic_Pathogen_annot.csv` - Annotated reactions shared between probiotics and pathogens
-- `Probiotic_Commensal_annot.csv` - Annotated reactions shared between probiotics and commensals
-
-Each CSV should contain an 'Annotation' column with subsystem information.
+- `Pathogens_Commensals_annot.csv`, `Probiotic_Pathogen_annot.csv`, `Probiotic_Commensal_annot.csv`
+  - Required columns: `Reaction` (ID) and `Annotation` (subsystem or pathway label).
 
 **Output**:
 - Three-panel bar chart showing subsystem distributions for:
@@ -131,11 +124,8 @@ python Unique_subystem_comparison.py
 ```
 
 **Input Files Required**:
-- `Unique_commensal_anno.csv` - Annotated unique commensal reactions
-- `Unique_pathogen_anno.csv` - Annotated unique pathogen reactions
-- `Unique_probiotic_anno.csv` - Annotated unique probiotic reactions
-
-Each CSV should contain an 'Annotation' column with subsystem information.
+- `Unique_commensal_anno.csv`, `Unique_pathogen_anno.csv`, `Unique_probiotic_anno.csv`
+  - Required columns: `Reaction` (ID) and `Annotation` (subsystem or pathway label).
 
 **Output**:
 - Three-panel horizontal bar chart showing:

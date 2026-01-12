@@ -49,8 +49,8 @@ python plot_curves.py
 ```
 
 **Input Files Required**:
-- `Final.csv` - Columns: Duration (Hours), [Condition] [Replicate]
-- `PGY_mcur_final.csv` (optional) - Additional data
+- `Final.csv` - Column 1: `Duration (Hours)`; columns 2..N: OD600 values for each condition with replicate columns repeated (e.g., three columns per condition such as `A. christensenii SM`). Header row required; values are numeric OD600 per timepoint.
+- `PGY_mcur_final.csv` (optional) - Same structure as `Final.csv`.
 
 **Output**:
 - Growth curve plot showing all conditions
@@ -86,7 +86,7 @@ python AUC_difference.py
 ```
 
 **Input Files Required**:
-- `Final.csv` - Growth curve data
+- `Final.csv` - Same structure as described above (Duration column followed by replicate OD600 columns for each condition).
 
 **Output**:
 - Bar chart comparing mean AUC by group
@@ -113,6 +113,12 @@ Experiments using *Gardnerella vaginalis* strain JCP7672.
 
 **Functionality**: Similar to GV14018 version, adapted for JCP7672 data structure.
 
+**Input Files Required**:
+- `Final.csv` - Column 1: time (Hours); columns 2..N: replicate OD600 values per condition (header row required).
+
+**Output**:
+- Growth curve plot for JCP7672 conditions.
+
 ---
 
 ### LacticAcid/DLacticAcid/
@@ -138,6 +144,9 @@ Analysis of D-lactic acid concentrations in spent media.
 python dlactic.py
 ```
 
+**Input Files Required**:
+- `D-lacticAcid*.xlsx` files (wide format) with columns: `Sample`/`Condition` names and one or more replicate concentration columns (mmol/L). Header row required.
+
 **Output**:
 - Bar chart showing D-lactic acid concentration by group
 - Statistical test results
@@ -161,6 +170,10 @@ python dlactic.py
 ```bash
 python dlacticandgrowth.py
 ```
+
+**Input Files Required**:
+- `D-lacticAcid*.xlsx` - as above for concentration values.
+- `species_auc_values.csv` - from `AUC_difference.py`; columns: `Species`, `AUC`, `Group`.
 
 **Output**:
 - Scatter plot with exponential fit
@@ -186,6 +199,9 @@ Analysis of L-lactic acid concentrations in spent media.
 ```bash
 python Llactic.py
 ```
+
+**Input Files Required**:
+- `L-lacticAcid*.xlsx` files with columns similar to D-lactate sheets: condition identifiers and replicate concentration columns (mmol/L), header row required.
 
 **Output**:
 - Bar chart showing L-lactic acid concentration by group
@@ -213,6 +229,9 @@ Analysis of pH measurements in spent media.
 ```bash
 python pHplot.py
 ```
+
+**Input Files Required**:
+- `pH` measurement CSV/XLSX with columns: `Condition` and replicate pH values (header row required). Adapt filenames in the script if needed.
 
 **Output**:
 - Bar chart showing pH by group

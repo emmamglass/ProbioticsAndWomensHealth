@@ -22,6 +22,11 @@ These models are used in conjunction with:
 - Clustering analyses (`CommensalPathogenProbioticClustering/`)
 - Reaction analysis (`ReactionAnalysis/`)
 
+## Inputs / Outputs for Scripts
+
+- **Inputs**: `.sbml` model files are consumed by downstream sampling/clustering scripts; no additional CSV input is required within this folder.
+- **Outputs**: This folder itself produces no output; downstream scripts write flux CSVs, plots, and tables in their respective directories.
+
 ## Model Sources
 
 Models are likely derived from:
