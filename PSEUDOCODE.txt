@@ -1,46 +1,253 @@
-OVERVIEW OF ANALYSIS PIPELINE AND SCRIPTS
+PSEUDOCODE: CURRENT REPOSITORY WORKFLOW
 
-1. COMMUNITY MODELING AND PAIRWISE SIMULATIONS
-The pipeline begins with the CommunityModeling module, which automates the construction of metabolic models. 
-The script pairwise_community_modeling.py loads SBML files and selects a solver to simulate interactions 
-between G. vaginalis and various inhibitory or uninhibitory partners. These simulations are conducted across
-specific abundance ratios (1:1, 1:10, and 10:1) to record growth rates, niche overlap, and D-lactate flux. 
-The resulting data is aggregated into CSV and PKL files, which are then processed by create_plots_from_csv.py
-to generate visual comparisons of growth suppression and metabolite fluxes.
+This document reflects the CURRENT folder layout and script responsibilities.
 
-2. MICROBIAL CLUSTERING AND CENTROID ANALYSIS
-The pipeline features several clustering modules (Human-Associated, Probiotics, and Vaginal Species) that 
-follow a standardized analytical flow. The Clustering.py scripts read flux vectors from various species 
-lists, labeling them as Probiotic, Pathogen, or Commensal. After downsampling the data, dimensionality 
-reduction techniques such as PCA, t-SNE, or KMeans are applied to identify patterns. The 
-centroidcalculations.py scripts then take these coordinates to compute class centroids and draw 2 SD 
-confidence ellipses. Statistical significance is determined using Kruskal-Wallis tests on class 
-distributions. To visualize the specific reactions driving these clusters, flux_heatmap scripts compute 
-median fluxes per species and render clustered heatmaps annotated by metabolic subsystems.
+Folder naming convention:
+- Figures are organized as `Figures/FigX/...` and panel-level folders such as `Fig3A`, `Fig4F`.
+- Supplemental/extended figures are organized as `ExtendedFigures/SX`.
+- Table workflows are organized as `Table6_MICOM`.
+- Shared model resources are in `GENREs/GENREs/...`.
 
-3. REACTION AND SUBSYSTEM ANALYSIS
-Detailed metabolic differences are explored in the ReactionAnalysis module. The ReactionAnalysisUpsetPlot.py
- script identifies unique and shared reactions across microbial groups using UpSet diagrams. These unique 
- reactions are then annotated via ReactionAnnotation.py, which queries ModelSEED and KEGG databases to map 
- reactions to specific metabolic pathways. To compare groups at a higher level, the subsystem_differences 
- scripts count reactions per subsystem and generate bar charts to highlight functional differences between 
- pathogens, commensals, and probiotics.
+====================================================================
+1) CORE RESOURCES
+====================================================================
 
-4. EXPERIMENTAL VALIDATION AND SPENT MEDIA ANALYSIS
-The SpentMediaExperiment folder contains scripts designed to process empirical laboratory data. The 
-plot_curves.py scripts calculate the mean and SEM for growth replicates of G. vaginalis (strains GV14018 
-and JCP7672) to generate growth curves with shaded error regions. The AUC_difference.py script performs 
-Simpson integration to calculate the Area Under the Curve for different conditions, followed by ANOVA and 
-pairwise t-tests to quantify growth inhibition.
+1.1 GENOME-SCALE METABOLIC MODELS (GENREs)
+- `GENREs/GENREs/HumanAssociatedMetabolicNetworkModels`
+- `GENREs/GENREs/PathogenicMetabolicNetworkModels`
+- `GENREs/GENREs/ProbioticMetabolicNetworkModels`
 
-Metabolic byproducts are analyzed through specialized scripts for Lactic Acid and pH. These scripts process 
-concentrations of D-lactic and L-lactic acid, using Welch t-tests to compare groups. Notably, dlacticandgrowth.py 
-fits an exponential model to the data to determine the correlation between D-lactate concentrations and pathogen 
-growth (AUC), providing an R-squared value for the fit.
+Purpose:
+- Store SBML models used by clustering, reaction analysis, and community modeling workflows.
 
-5. META-ANALYSIS AND UTILITIES
-The MetaAnalysis module handles broader data integration. The metaanalysisplot.py script converts 
-percentage-based intervention strings into numeric data to run Kruskal-Wallis and Mann-Whitney U tests 
-across different categories, visualizing results through boxplots. Additionally, miscellaneous utility 
-scripts are used across the project to ensure consistent figure generation from precomputed CSV results.
+====================================================================
+2) FIGURE 1 WORKFLOW
+====================================================================
+
+Folder:
+- `Figures/Fig1`
+
+Script:
+- `probioticsanalysis.py`
+
+Input:
+- `BinarySpeciesPresence.csv`
+
+Outputs/plots:
+- Fig 1A: brand-level species-count boxplot
+- Fig 1B: histogram of number of species per product
+- Fig 1C: PCA scatter plot from binary species-presence matrix
+
+====================================================================
+3) FIGURE 2 WORKFLOWS
+====================================================================
+
+3.1 FIG 2B (REACTION OVERLAP)
+Folder:
+- `Figures/Fig2/Fig2B`
+Scripts:
+- `ReactionAnalysisUpsetPlot.py`
+- `ReactionAnnotation.py`
+Core function:
+- Quantify shared/unique reactions among commensal/pathogen/probiotic groups.
+- Build overlap visualizations and reaction annotation tables.
+
+3.2 FIG 2C (PAIRWISE SUBSYSTEM DIFFERENCES)
+Folder:
+- `Figures/Fig2/Fig2C`
+Scripts:
+- `ReactionAnnotation.py`
+- `subsystem_differences_hist.py`
+Core function:
+- Annotate pairwise reaction sets and summarize subsystem-level differences.
+
+3.3 FIG 2D-E-F (UNIQUE SUBSYSTEM COMPARISONS)
+Folder:
+- `Figures/Fig2/Fig2DEF`
+Scripts:
+- `ReactionAnnotation.py`
+- `Unique_subystem_comparison.py`
+Core function:
+- Analyze unique reaction subsystems per class (commensal/pathogen/probiotic).
+
+3.4 FIG 2G (PROBIOTIC CLUSTERING)
+Folder:
+- `Figures/Fig2/Fig2G`
+Scripts:
+- `Clustering.py`
+- `centroidcalculations.py`
+Core function:
+- Dimensionality reduction (PCA/t-SNE/MDS/KMeans option) and centroid ellipse statistics for probiotic-focused clustering.
+
+3.5 FIG 2H (THREE-GROUP CLUSTERING + HEATMAP)
+Folder:
+- `Figures/Fig2/Fig2H`
+Scripts:
+- `Clustering.py`
+- `centroidcalculations.py`
+- `flux_heatmap.py`
+Core function:
+- Cluster commensal/pathogen/probiotic samples and produce reaction-level flux heatmaps.
+
+====================================================================
+4) FIGURE 3 WORKFLOWS (VAGINAL SPECIES)
+====================================================================
+
+4.1 FIG 3A (VAGINAL PROBIOTIC VS COMMENSAL CLUSTERING)
+Folder:
+- `Figures/Fig3/Fig3A`
+Scripts:
+- `clusteringvaginalproandcomm.py`
+- `centroidcalculations_vagina.py`
+Core function:
+- Build reduced coordinates from flux sampling and compute centroid/ellipse separation statistics.
+- `clusteringvaginalproandcomm.py` writes `data_to_plot_vagina.csv`.
+
+4.2 FIG 3B (INHIBITORY-PHENOTYPE HEATMAP)
+Folder:
+- `Figures/Fig3/Fig3B`
+Script:
+- `flux_heatmap_inhib_uninhib.py`
+Core function:
+- Build one clustered heatmap across groups:
+  - Uninhibitory
+  - Moderate
+  - Inhibitory
+  - Gardnerella vaginalis
+
+Important input-path rule for Fig3 heatmaps/clustering:
+- Flux CSVs are loaded from file paths listed in group `.txt` files.
+- If flux files are outside the figure folder (e.g. in `FluxSamplingFiles/HumanAssociated`), list entries must use valid relative/absolute paths.
+
+====================================================================
+5) FIGURE 4 WORKFLOWS (SPENT MEDIA + METABOLITES)
+====================================================================
+
+5.1 FIG 4A (GROWTH CURVES)
+Folder:
+- `Figures/Fig4/Fig4A`
+Script:
+- `plot_curves.py`
+Input:
+- `Final.csv`
+Core function:
+- Plot mean +/- SEM growth trajectories.
+
+5.2 FIG 4B (AUC GROUP COMPARISON)
+Folder:
+- `Figures/Fig4/Fig4B `
+Script:
+- `AUC_difference.py`
+Input:
+- `Final.csv`
+Core function:
+- Compute per-replicate AUC, aggregate by species/group, run ANOVA + pairwise tests, and plot grouped bars.
+
+5.3 FIG 4C (PH)
+Folder:
+- `Figures/Fig4/Fig4C`
+Script:
+- `pHplot.py`
+Input:
+- Embedded arrays in script (no spreadsheet required).
+
+5.4 FIG 4D (L-LACTIC ACID)
+Folder:
+- `Figures/Fig4/Fig4D`
+Script:
+- `Llactic.py`
+Input:
+- Embedded arrays in script (no spreadsheet required).
+
+5.5 FIG 4E (D-LACTIC ACID)
+Folder:
+- `Figures/Fig4/Fig4E`
+Script:
+- `dlactic.py`
+Input:
+- Embedded arrays in script (no spreadsheet required).
+
+5.6 FIG 4F (D-LACTATE VS GROWTH RELATIONSHIP)
+Folder:
+- `Figures/Fig4/Fig4F`
+Script:
+- `dlacticandgrowth.py`
+Input:
+- Embedded x/y arrays in script.
+Core function:
+- Fit exponential curve and report R^2.
+
+====================================================================
+6) SUPPLEMENTAL / EXTENDED FIGURES
+====================================================================
+
+6.1 S1
+Folder:
+- `ExtendedFigures/S1`
+Script:
+- `PubMed_published_articles.py`
+Input:
+- `PubMed_Probiotics_Timeline_Results_by_Year.csv`
+Output:
+- Line plot of publication count by year.
+
+6.2 S2
+Folder:
+- `ExtendedFigures/S2`
+Script:
+- `flux_heatmap_inhib_uninhib.py`
+Inputs:
+- `uninhibitory_vag_comm.txt`
+- `moderate_vag_comm.txt`
+- `inhibitory_vag_comm.txt`
+- `gardnerella_vaginalis.txt`
+- `file_species_mapping.csv`
+- `all_reactions.csv`
+- flux CSV files listed in the `.txt` files
+Output:
+- Heatmap + `all_reactions.txt`
+
+6.3 S4
+Folder:
+- `ExtendedFigures/S4`
+Script:
+- `plot_curves.py`
+Inputs:
+- `Final.csv`
+- `PGY_mcur_final.csv`
+Output:
+- Combined growth-curve plot.
+
+====================================================================
+7) TABLE 6 COMMUNITY MODELING WORKFLOW
+====================================================================
+
+Folder:
+- `Table6_MICOM`
+
+Primary scripts:
+- `pairwise_community_modeling.py`
+- `create_plots_from_csv.py`
+
+Core function:
+- Build pairwise communities, simulate growth under abundance ratios, and quantify:
+  - growth suppression,
+  - niche overlap,
+  - metabolite flux behavior.
+
+Typical artifacts:
+- summary CSV outputs,
+- PKL intermediate outputs,
+- publication-style comparison plots.
+
+====================================================================
+8) LEGACY / CROSS-CHECK ANALYSES (NON-FIGURE-RENAMED ROOTS)
+====================================================================
+
+Some legacy analysis folders still exist in parallel to `Figures/...` organization:
+- `ReactionAnalysis`
+- `SpentMediaExperiment`
+- `ProbioticSurvey`
+
+These preserve prior scripts and can be used for validation/reproduction cross-checks against figure-organized folders.
 

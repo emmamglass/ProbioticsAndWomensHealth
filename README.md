@@ -1,186 +1,280 @@
 # Probiotics and Women's Health
 
-This repository contains computational and experimental analyses investigating the metabolic interactions between probiotics, commensals, and pathogens in the context of women's health, with a particular focus on vaginal microbiota and bacterial vaginosis (BV).
+This repository contains figure-organized computational and experimental analyses for studying metabolic interactions among probiotics, commensals, and pathogens in the context of women's health (with a strong focus on vaginal ecology and *Gardnerella vaginalis* inhibition phenotypes).
 
-## Repository Overview
+## What Is In This Repository
 
-This project integrates:
-- **Genome-scale metabolic network models** (GEMs) for commensal, pathogenic, and probiotic bacteria
-- **Flux balance analysis** (FBA) and flux sampling to characterize metabolic phenotypes
-- **Clustering and dimensionality reduction** analyses to identify metabolic patterns
-- **Reaction pathway analysis** to understand metabolic differences between bacterial groups
-- **Experimental validation** using spent media growth assays and metabolite measurements
-- **Meta-analysis** of clinical BV recurrence data
+- **Figure-organized analysis code** under `Figures/` (main manuscript figures).
+- **Supplemental/extended figure code and data** under `ExtendedFigures/`.
+- **Pairwise community modeling workflow for Table 6** under `Table6_MICOM/`.
+- **Genome-scale metabolic network model resources (GENREs)** under `GENREs/`.
+- **Flux sampling data pool** under `FluxSamplingFiles/`, referenced by multiple figure scripts.
 
-## Repository Structure
+## Folder Naming Convention
 
-```
+Folder names are intentional and map to manuscript artifacts:
+
+- `Figures/FigX/...` -> Figure X in the manuscript.
+- `Figures/FigX/FigXY` -> panel-level folder (for example `Fig3A`, `Fig4F`).
+- `ExtendedFigures/SY` -> supplemental/extended figure SY.
+- `Table6_MICOM` -> analyses supporting Table 6.
+- `GENREs/...` -> shared model resources reused across multiple analyses.
+
+Use folder names as the primary index for which scripts and data correspond to each manuscript item.
+
+## Top-Level Layout
+
+```text
 ProbioticsAndWomensHealth/
-├── CommensalMetabolicNetworkModels/     # SBML models for commensal bacteria
-├── CommensalPathogenProbioticClustering/ # Clustering analysis comparing all three groups
-├── MetaAnalysis/                        # Meta-analysis of clinical BV recurrence data
-├── PathogenicMetabolicNetworkModels/    # SBML models for pathogenic bacteria
-├── ProbioticMetabolicNetworkModels/     # SBML models for probiotic bacteria
-├── ProbioticsClustering/                # Clustering analysis of probiotic species
-├── ReactionAnalysis/                    # Reaction pathway and subsystem analysis
-├── SpentMediaExperiment/                # Experimental growth and metabolite data
-└── VaginalSpeciesClustering/            # Clustering analysis of vaginal species
+├── Figures/
+│   ├── Fig1/
+│   ├── Fig2/
+│   ├── Fig3/
+│   └── Fig4/
+├── ExtendedFigures/
+│   ├── S1/
+│   ├── S2/
+│   ├── S3/
+│   ├── S4/
+│   └── S5/
+├── Table6_MICOM/
+├── GENREs/
+├── FluxSamplingFiles/
+├── PSEUDOCODE.txt
+└── README.md
 ```
 
-## Key Research Questions
+---
 
-1. **Metabolic Differentiation**: How do metabolic networks differ between commensals, pathogens, and probiotics?
-2. **Vaginal Microbiota**: What metabolic features distinguish inhibitory vs. non-inhibitory vaginal commensals?
-3. **Mechanisms of Inhibition**: What metabolites or metabolic pathways contribute to growth inhibition of pathogens like *Gardnerella vaginalis*?
-4. **Clinical Relevance**: How do probiotic interventions affect BV recurrence rates?
+## Main Figure Pipelines
 
-## Main Components
+### Figure 1 (`Figures/Fig1`)
 
-### 1. Metabolic Network Models
+**Script**
+- `probioticsanalysis.py`
 
-The repository contains genome-scale metabolic models (SBML format) for:
-- **Commensal bacteria** (775 models)
-- **Pathogenic bacteria** (197 models)
-- **Probiotic bacteria** (33 models)
+**Primary input**
+- `BinarySpeciesPresence.csv`
 
-These models are used for flux balance analysis and flux sampling to characterize metabolic phenotypes.
+**What it produces**
+- Brand-level boxplot of number of species.
+- Histogram of species counts across products.
+- PCA scatter visualization from binary species-presence matrix.
 
-### 2. Clustering Analyses
+---
 
-Multiple clustering approaches are used to identify metabolic patterns:
-- **PCA** (Principal Component Analysis)
-- **t-SNE** (t-distributed Stochastic Neighbor Embedding)
-- **MDS** (Multidimensional Scaling)
-- **K-means** clustering
+### Figure 2 (`Figures/Fig2`)
 
-See individual folder READMEs for details on each analysis.
+#### Fig2B (`Figures/Fig2/Fig2B`)
+- `ReactionAnalysisUpsetPlot.py`
+- `ReactionAnnotation.py`
+- Focus: reaction overlap and annotation workflows.
 
-### 3. Reaction Analysis
+#### Fig2C (`Figures/Fig2/Fig2C`)
+- `ReactionAnnotation.py`
+- `subsystem_differences_hist.py`
+- Focus: subsystem differences for pairwise group comparisons.
 
-Analysis of metabolic reactions and subsystems to identify:
-- Unique reactions in each bacterial group
-- Shared vs. unique metabolic pathways
-- Subsystem-level differences
+#### Fig2DEF (`Figures/Fig2/Fig2DEF`)
+- `ReactionAnnotation.py`
+- `Unique_subystem_comparison.py`
+- Focus: unique reaction subsystem enrichment-style summaries.
 
-### 4. Experimental Validation
+#### Fig2G (`Figures/Fig2/Fig2G`)
+- `Clustering.py`
+- `centroidcalculations.py`
+- Focus: probiotic-focused clustering and centroid statistics.
 
-Spent media experiments examining:
-- Growth curves of *Gardnerella vaginalis* in spent media from various species
-- pH measurements
-- D- and L-lactic acid concentrations
-- Area under the curve (AUC) calculations
+#### Fig2H (`Figures/Fig2/Fig2H`)
+- `Clustering.py`
+- `centroidcalculations.py`
+- `flux_heatmap.py`
+- Focus: commensal/pathogen/probiotic clustering + reaction heatmap.
 
-### 5. Meta-Analysis
+---
 
-Statistical analysis of clinical BV recurrence data comparing different intervention strategies.
+### Figure 3 (`Figures/Fig3`)
 
-## Dependencies
+#### Fig3A (`Figures/Fig3/Fig3A`)
 
-### Python Packages
-- `pandas` - Data manipulation
-- `numpy` - Numerical computations
-- `matplotlib` - Plotting
-- `seaborn` - Statistical visualization
-- `scikit-learn` - Machine learning (PCA, t-SNE, K-means, MDS)
-- `scipy` - Statistical tests and numerical integration
-- `cobra` - Constraint-based reconstruction and analysis (COBRA) toolbox
-- `upsetplot` - UpSet plots for set intersections
-- `mycolorpy` - Color palette generation
+**Scripts**
+- `clusteringvaginalproandcomm.py`
+- `centroidcalculations_vagina.py`
 
-### Data Formats
-- **SBML** - Systems Biology Markup Language for metabolic models
-- **CSV** - Comma-separated values for flux data and experimental results
-- **Excel** - Spreadsheet files for experimental data
+**Role split**
+- `clusteringvaginalproandcomm.py` generates reduced coordinates and writes `data_to_plot_vagina.csv`.
+- `centroidcalculations_vagina.py` performs centroid/ellipse statistics and plotting.
 
-## System Requirements
+#### Fig3B (`Figures/Fig3/Fig3B`)
 
-- **Operating systems tested**: macOS (Apple silicon) on Darwin 25.1 with Homebrew-managed Python 3.11.14 and 3.14.0 virtual environments. Linux should work with equivalent Python/solver setups; Windows has not been validated.
-- **Software dependencies**: Python 3.11+ (3.14 OK), with `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`, `scipy`, `cobra`, `micom`, `upsetplot`, `mycolorpy`. See `CommunityModeling/requirements.txt` for pinned versions used in MICOM workflows.
-- **Solvers**: MICOM uses COBRA solvers; GLPK works out of the box. Gurobi (optional) improves performance if licensed.
-- **Hardware**: No non-standard hardware required. A typical desktop/laptop with ≥4 CPU cores and ≥16 GB RAM is recommended for running multiple community simulations. GPU is not used.
+**Script**
+- `flux_heatmap_inhib_uninhib.py`
 
-## Installation
+**Heatmap grouping**
+- Uninhibitory vaginal commensals
+- Moderate vaginal commensals
+- Inhibitory vaginal commensals
+- *Gardnerella vaginalis*
 
-Typical install on a normal desktop computer (Python already installed):
+**Important input-path note**
+- Flux CSVs are loaded from file paths listed in group `.txt` files.
+- If flux files live outside the figure folder (for example in `FluxSamplingFiles/HumanAssociated/`), list entries must be valid relative/absolute paths from the runtime working directory.
 
-```bash
-# from repo root
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r CommunityModeling/requirements.txt
-# optional: add plotting/analysis extras
-pip install scikit-learn scipy upsetplot mycolorpy
-```
+---
 
-If using Gurobi, install and license it separately, then set `MICOM_SOLVER=gurobi`.
+### Figure 4 (`Figures/Fig4`)
 
-## Demo
+#### Fig4A (`Figures/Fig4/Fig4A`)
+- `plot_curves.py`
+- Input: `Final.csv`
+- Output: growth curves with mean and SEM shading.
 
-Run the pairwise community modeling example included in `CommunityModeling`:
+#### Fig4B (`Figures/Fig4/Fig4B `)
+- `AUC_difference.py`
+- Input: `Final.csv`
+- Output: AUC-based bar comparison with ANOVA/pairwise tests and `species_auc_values.csv`.
+- Note: folder currently includes a trailing space (`Fig4B `).
 
-```bash
-cd /Users/eglass/Desktop/UVA/Nautre\ Microbiology/ProbioticsAndWomensHealth
-source .venv/bin/activate      # if created as above
-python CommunityModeling/pairwise_community_modeling.py
-```
+#### Fig4C (`Figures/Fig4/Fig4C`)
+- `pHplot.py`
+- Input: data embedded directly in script (no spreadsheet required).
 
-**Expected output** (written to `CommunityModeling/pairwise_results/`):
-- `pairwise_summary.csv`, `detailed_results.pkl`
-- Plots: `pairwise_comparison_plots.png`, `abundance_dependent_effects.png`
+#### Fig4D (`Figures/Fig4/Fig4D`)
+- `Llactic.py`
+- Input: data embedded directly in script (no spreadsheet required).
 
-**Expected run time**: ~3–6 minutes on a recent Apple silicon or comparable CPU desktop with 16 GB RAM using the default GLPK solver (Gurobi can be faster).
+#### Fig4E (`Figures/Fig4/Fig4E`)
+- `dlactic.py`
+- Input: data embedded directly in script (no spreadsheet required).
 
-For all other analyses and scripts, see the README in each subfolder (e.g., `CommensalPathogenProbioticClustering/README.md`, `ProbioticsClustering/README.md`, `ReactionAnalysis/README.md`, etc.) for dataset requirements, parameters, and run commands specific to that module.
+#### Fig4F (`Figures/Fig4/Fig4F`)
+- `dlacticandgrowth.py`
+- Input: data embedded directly in script (no spreadsheet required).
+- Output: exponential fit and reported `R^2`.
 
-## Instructions for Use
+---
 
-- **Prepare models**: Place your SBML models in the relevant module directory (e.g., `CommunityModeling/`) and update the `MODEL_MAPPINGS` dictionary in `pairwise_community_modeling.py` to point to your filenames.
-- **Media and constraints**: Adjust media composition in `define_media_constraints()` inside the same script to match your experimental conditions (e.g., PGY-mod or Synthetic Vaginal Fluid).
-- **Solver selection**: Set `MICOM_SOLVER` to `glpk` (default), `glpk_exact`, `hybrid`, `osqp`, `scipy`, or `gurobi` if installed.
-- **Run on your data**: Execute the script as in the Demo section; outputs will be written to `pairwise_results/` with metrics on growth suppression, niche overlap, and metabolite production.
-- **Post-processing**: Use the generated CSV/Pickle outputs to make additional plots or statistical comparisons; see subfolder READMEs for analysis-specific guidance.
+## Supplemental / Extended Figure Pipelines
 
-## Usage
+### S1 (`ExtendedFigures/S1`)
+- `PubMed_published_articles.py`
+- Input: `PubMed_Probiotics_Timeline_Results_by_Year.csv`
+- Output: publication timeline plot.
 
-Each subfolder contains specific analyses. See the README files in each folder for:
-- Required input files
-- Script execution instructions
-- Output descriptions
-- Dependencies
+### S2 (`ExtendedFigures/S2`)
+- `flux_heatmap_inhib_uninhib.py`
+- Inputs:
+  - `uninhibitory_vag_comm.txt`
+  - `moderate_vag_comm.txt`
+  - `inhibitory_vag_comm.txt`
+  - `gardnerella_vaginalis.txt`
+  - `file_species_mapping.csv`
+  - `all_reactions.csv`
+  - flux CSVs referenced by those list files
+- Output:
+  - heatmap visualization
+  - `all_reactions.txt` (generated)
 
-## Citation
+### S4 (`ExtendedFigures/S4`)
+- `plot_curves.py`
+- Inputs:
+  - `Final.csv`
+  - `PGY_mcur_final.csv`
+- Output: combined growth-curve plot.
 
-If you use this repository, please cite the associated publication (if available) or acknowledge the authors.
+`S3` and `S5` hold additional supplemental data/materials (for example data files used for supplement support) and can be treated as supplemental data containers unless a script is present.
 
-## Contact
+---
 
-For questions or issues, please contact the repository maintainers.
+## Table Workflow
+
+### Table 6 (`Table6_MICOM`)
+
+**Main scripts**
+- `pairwise_community_modeling.py`
+- `create_plots_from_csv.py`
+
+**Purpose**
+- Pairwise metabolic community modeling to compare inhibition behavior and mechanistic metrics (growth suppression, niche overlap, metabolite-related behavior) across candidate strain pairs.
+
+**Typical artifacts**
+- summary CSV outputs
+- serialized intermediate results
+- manuscript-style plots
+
+**Environment notes**
+- This folder includes local virtual environments (`venv`, `venv311`) and run logs for reproducibility.
+
+---
+
+## Shared Model Resources
+
+### `GENREs/`
+
+Contains curated genome-scale models and associated underlying data resources used across figure and table analyses:
+
+- `GENREs/GENREs/HumanAssociatedMetabolicNetworkModels`
+- `GENREs/GENREs/PathogenicMetabolicNetworkModels`
+- `GENREs/GENREs/ProbioticMetabolicNetworkModels`
+- `GENREs/DataUnderlyingGENREs` (resource/supporting data)
+
+These are shared assets, not single-figure folders.
+
+---
+
+## Data Types Used
+
+- **SBML (`.sbml`)**: genome-scale model files.
+- **Flux CSVs (`.sbml.csv`)**: sampled flux distributions from models.
+- **List files (`.txt`)**: pointers to flux CSVs grouped by phenotype/class.
+- **Result CSVs**: transformed coordinates, summary statistics, and table data.
+
+---
+
+## Python Dependencies (Repository-Wide)
+
+The scripts across this repository use combinations of:
+
+- `pandas`
+- `numpy`
+- `matplotlib`
+- `seaborn`
+- `scipy`
+- `scikit-learn`
+- `cobra`
+- `micom` (Table 6 workflows)
+- `upsetplot` (reaction overlap plotting)
+- `mycolorpy`
+- `requests`
+- `biopython` (`Bio` imports in annotation scripts)
+- `colour`
+
+Not every folder needs every package; see folder-level README files for precise local requirements.
+
+---
+
+## How To Navigate and Run
+
+1. Start from manuscript target:
+   - choose folder by artifact name (`Fig3A`, `S2`, `Table6_MICOM`, etc.).
+2. Open that folder’s `README.md`:
+   - confirm script order, inputs, and expected outputs.
+3. Verify list-file paths:
+   - especially for flux heatmaps/clustering scripts that load CSVs from `.txt` path lists.
+4. Run scripts from the folder they expect:
+   - many scripts use relative paths and assume local working directory context.
+
+---
+
+## Notes on Current State
+
+- Folder and script organization has been normalized around figure/table/supplement naming.
+- Some historical naming artifacts remain (for example `Figures/Fig4/Fig4B ` with trailing space).
+- `PSEUDOCODE.txt` provides a workflow-level, script-by-script pseudocode summary aligned to this structure.
+
+---
 
 ## License
 
-This repository is licensed under the MIT License. See the license text below:
-
-```
-MIT License
-
-Copyright (c) 2026
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+MIT License.
 
